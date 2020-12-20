@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "WWW",
+    "WEW",
+    "WWW"
+  ],
+  "key": {
+    "W": {
+      "tag": "minecraft:planks"
+    },
+    "E": {
+      "item": "minecraft:emerald"
+    }
+  },
+  "result": {
+    "item": "offlineeconomy:shop_block"
+  }
+}

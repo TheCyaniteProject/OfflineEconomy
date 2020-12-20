@@ -1,0 +1,8 @@
+{
+    "parent": "block/cube_bottom_top",
+    "textures": {
+        "top": "offlineeconomy:block/shop_block_top",
+        "side": "offlineeconomy:block/shop_block_side",
+        "bottom": "offlineeconomy:block/shop_block_bottom"
+    }
+}
