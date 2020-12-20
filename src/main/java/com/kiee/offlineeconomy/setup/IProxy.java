@@ -1,10 +1,13 @@
 package com.kiee.offlineeconomy.setup;
 
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.world.World;
 
 public interface IProxy {
 
     void init();
 
-    World getClientProxy();
+    World getClientWorld();
+
+    PlayerEntity getClientPlayer();
 }

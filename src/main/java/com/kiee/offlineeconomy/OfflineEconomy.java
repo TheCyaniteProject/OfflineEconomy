@@ -2,13 +2,20 @@ package com.kiee.offlineeconomy;
 
 import com.kiee.offlineeconomy.blocks.BlockList;
 import com.kiee.offlineeconomy.blocks.ShopBlock;
+import com.kiee.offlineeconomy.blocks.ShopBlockContainer;
+import com.kiee.offlineeconomy.blocks.ShopBlockTile;
 import com.kiee.offlineeconomy.setup.ClientProxy;
 import com.kiee.offlineeconomy.setup.IProxy;
 import com.kiee.offlineeconomy.setup.ModSetup;
 import com.kiee.offlineeconomy.setup.ServerProxy;
 import net.minecraft.block.Block;
+import net.minecraft.inventory.container.Container;
+import net.minecraft.inventory.container.ContainerType;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.math.BlockPos;
+import net.minecraftforge.common.extensions.IForgeContainerType;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.DistExecutor;
@@ -51,12 +58,28 @@ public class OfflineEconomy
         @SubscribeEvent
         public static void onBlocksRegistry(final RegistryEvent.Register<Block> event) {
             event.getRegistry().register(new ShopBlock());
-            LOGGER.info("Registered Blocks");
+            LOGGER.info("OfflineEconomy: Registered Blocks");
         }
+
         @SubscribeEvent
         public static void onItemsRegistry(final RegistryEvent.Register<Item> event) {
             event.getRegistry().register(new BlockItem(BlockList.SHOPBLOCK, new Item.Properties()).setRegistryName("shop_block"));
-            LOGGER.info("Registered Items");
+            LOGGER.info("OfflineEconomy: Registered Items");
+        }
+
+        @SubscribeEvent
+        public static void onTileEntityRegistry(final RegistryEvent.Register<TileEntityType<?>> event) {
+            event.getRegistry().register(TileEntityType.Builder.create(ShopBlockTile::new, BlockList.SHOPBLOCK).build(null).setRegistryName("shop_block"));
+            LOGGER.info("OfflineEconomy: Registered TileEntities");
+        }
+
+        @SubscribeEvent
+        public static void onContainerRegistry(final RegistryEvent.Register<ContainerType<?>> event) {
+            event.getRegistry().register(IForgeContainerType.create((windowId, inv, data) -> {
+                BlockPos position = data.readBlockPos();
+                return new ShopBlockContainer(windowId, OfflineEconomy.proxy.getClientWorld(), position, inv, OfflineEconomy.proxy.getClientPlayer());
+            }).setRegistryName("shop_block"));
+            LOGGER.info("OfflineEconomy: Registered Containers");
         }
     }
 }
