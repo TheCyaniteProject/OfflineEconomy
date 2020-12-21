@@ -54,8 +54,6 @@ public class ShopBlockTile extends TileEntity implements ITickableTileEntity, IN
         return super.write(tag);
     }
 
-    private static final Item requiredItem = Items.EMERALD;
-
     private IItemHandler createHandler() {
         return new ItemStackHandler(1);
     }

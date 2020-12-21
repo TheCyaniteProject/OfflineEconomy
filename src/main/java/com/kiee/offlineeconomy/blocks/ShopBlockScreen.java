@@ -1,6 +1,7 @@
 package com.kiee.offlineeconomy.blocks;
 
 import com.kiee.offlineeconomy.OfflineEconomy;
+import com.kiee.offlineeconomy.handlers.ShopItem;
 import com.mojang.blaze3d.platform.GlStateManager;
 import net.minecraft.client.gui.screen.inventory.ContainerScreen;
 import net.minecraft.client.gui.widget.button.Button;
@@ -8,6 +9,8 @@ import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraftforge.items.SlotItemHandler;
+
+import java.util.*;
 
 
 public class ShopBlockScreen extends ContainerScreen<ShopBlockContainer> {
@@ -18,7 +21,24 @@ public class ShopBlockScreen extends ContainerScreen<ShopBlockContainer> {
     public ShopBlockScreen(ShopBlockContainer screenContainer, PlayerInventory inv, ITextComponent windowId) {
         super(screenContainer, inv, windowId);
         this.ySize = 211;
-        int index = 0;
+    }
+
+    @Override
+    protected void renderHoveredToolTip(int mouseX, int mouseY) {
+        if (this.minecraft.player.inventory.getItemStack().isEmpty() && this.hoveredSlot != null && this.hoveredSlot.getHasStack()) {
+            ShopItem currentItem = null;
+            for (ShopItem shopItem : ShopBlockContainer.shopItems) {
+                if (shopItem.item == this.hoveredSlot.getStack().getItem()) {
+                    currentItem = shopItem;
+                }
+            }
+            if (currentItem == null) return;
+            int baseValue = currentItem.cost;
+            int value = (int)((((float) baseValue / (float) currentItem.count) * 0.75f) * this.hoveredSlot.getStack().getCount());
+            this.renderTooltip(Arrays.asList(this.hoveredSlot.getStack().getItem().getName().getString() + " x " + this.hoveredSlot.getStack().getCount()
+                    , "Buy: " + ShopBlockContainer.currencyItem.getItem().getName().getString() + " x " + (this.hoveredSlot.getStack().getCount() / currentItem.count) * currentItem.cost,
+                    "Sell: " + ShopBlockContainer.currencyItem.getItem().getName().getString() + " x " + value ), mouseX, mouseY);
+        }
     }
 
     @Override

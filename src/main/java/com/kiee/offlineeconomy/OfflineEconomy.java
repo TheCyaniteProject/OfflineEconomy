@@ -4,6 +4,7 @@ import com.kiee.offlineeconomy.blocks.BlockList;
 import com.kiee.offlineeconomy.blocks.ShopBlock;
 import com.kiee.offlineeconomy.blocks.ShopBlockContainer;
 import com.kiee.offlineeconomy.blocks.ShopBlockTile;
+import com.kiee.offlineeconomy.handlers.Parser;
 import com.kiee.offlineeconomy.setup.ClientProxy;
 import com.kiee.offlineeconomy.setup.IProxy;
 import com.kiee.offlineeconomy.setup.ModSetup;
@@ -47,8 +48,8 @@ public class OfflineEconomy
     private void setup(final FMLCommonSetupEvent event) {
         modSetup = new ModSetup();
         modSetup.init();
-
         proxy.init();
+        new Parser().init();
     }
 
 
@@ -59,19 +60,16 @@ public class OfflineEconomy
         @SubscribeEvent
         public static void onBlocksRegistry(final RegistryEvent.Register<Block> event) {
             event.getRegistry().register(new ShopBlock());
-            LOGGER.info("OfflineEconomy: Registered Blocks");
         }
 
         @SubscribeEvent
         public static void onItemsRegistry(final RegistryEvent.Register<Item> event) {
             event.getRegistry().register(new BlockItem(BlockList.SHOPBLOCK, new Item.Properties().group(ItemGroup.MISC)).setRegistryName("shop_block"));
-            LOGGER.info("OfflineEconomy: Registered Items");
         }
 
         @SubscribeEvent
         public static void onTileEntityRegistry(final RegistryEvent.Register<TileEntityType<?>> event) {
             event.getRegistry().register(TileEntityType.Builder.create(ShopBlockTile::new, BlockList.SHOPBLOCK).build(null).setRegistryName("shop_block"));
-            LOGGER.info("OfflineEconomy: Registered TileEntities");
         }
 
         @SubscribeEvent
@@ -80,7 +78,6 @@ public class OfflineEconomy
                 BlockPos position = data.readBlockPos();
                 return new ShopBlockContainer(windowId, OfflineEconomy.proxy.getClientWorld(), position, inv, OfflineEconomy.proxy.getClientPlayer());
             }).setRegistryName("shop_block"));
-            LOGGER.info("OfflineEconomy: Registered Containers");
         }
     }
 }
