@@ -57,22 +57,7 @@ public class ShopBlockTile extends TileEntity implements ITickableTileEntity, IN
     private static final Item requiredItem = Items.EMERALD;
 
     private IItemHandler createHandler() {
-        return new ItemStackHandler(1) {
-            @Override
-            public boolean isItemValid(int slot, @Nonnull ItemStack stack) {
-                return stack.getItem() == requiredItem;
-            }
-
-            @Nonnull
-            @Override
-            public ItemStack insertItem(int slot, @Nonnull ItemStack stack, boolean simulate) {
-                if (stack.getItem() != requiredItem) {
-                    return stack;
-                }
-                return super.insertItem(slot, stack, simulate);
-            }
-
-        };
+        return new ItemStackHandler(1);
     }
 
     @Nonnull

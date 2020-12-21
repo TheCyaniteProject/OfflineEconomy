@@ -3,9 +3,11 @@ package com.kiee.offlineeconomy.blocks;
 import com.kiee.offlineeconomy.OfflineEconomy;
 import com.mojang.blaze3d.platform.GlStateManager;
 import net.minecraft.client.gui.screen.inventory.ContainerScreen;
+import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.ITextComponent;
+import net.minecraftforge.items.SlotItemHandler;
 
 
 public class ShopBlockScreen extends ContainerScreen<ShopBlockContainer> {
@@ -16,6 +18,7 @@ public class ShopBlockScreen extends ContainerScreen<ShopBlockContainer> {
     public ShopBlockScreen(ShopBlockContainer screenContainer, PlayerInventory inv, ITextComponent windowId) {
         super(screenContainer, inv, windowId);
         this.ySize = 211;
+        int index = 0;
     }
 
     @Override

@@ -13,6 +13,7 @@ import net.minecraft.inventory.container.Container;
 import net.minecraft.inventory.container.ContainerType;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemGroup;
 import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.common.extensions.IForgeContainerType;
@@ -63,7 +64,7 @@ public class OfflineEconomy
 
         @SubscribeEvent
         public static void onItemsRegistry(final RegistryEvent.Register<Item> event) {
-            event.getRegistry().register(new BlockItem(BlockList.SHOPBLOCK, new Item.Properties()).setRegistryName("shop_block"));
+            event.getRegistry().register(new BlockItem(BlockList.SHOPBLOCK, new Item.Properties().group(ItemGroup.MISC)).setRegistryName("shop_block"));
             LOGGER.info("OfflineEconomy: Registered Items");
         }
 
