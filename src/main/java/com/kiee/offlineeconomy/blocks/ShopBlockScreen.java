@@ -26,18 +26,31 @@ public class ShopBlockScreen extends ContainerScreen<ShopBlockContainer> {
     @Override
     protected void renderHoveredToolTip(int mouseX, int mouseY) {
         if (this.minecraft.player.inventory.getItemStack().isEmpty() && this.hoveredSlot != null && this.hoveredSlot.getHasStack()) {
+            if (this.hoveredSlot.getStack().getItem() == ShopBlockContainer.currencyItem) {
+                this.renderTooltip(Arrays.asList(this.hoveredSlot.getStack().getItem().getName().getString() + " x " + this.hoveredSlot.getStack().getCount()
+                        , "Currency!"), mouseX, mouseY);
+                return;
+            }
             ShopItem currentItem = null;
             for (ShopItem shopItem : ShopBlockContainer.shopItems) {
                 if (shopItem.item == this.hoveredSlot.getStack().getItem()) {
                     currentItem = shopItem;
                 }
             }
-            if (currentItem == null) return;
+            if (currentItem == null) {
+                this.renderTooltip(Arrays.asList(this.hoveredSlot.getStack().getItem().getName().getString() + " x " + this.hoveredSlot.getStack().getCount()
+                        , "Not For Sale"), mouseX, mouseY);
+                return;
+            }
             int baseValue = currentItem.cost;
             int value = (int)((((float) baseValue / (float) currentItem.count) * 0.75f) * this.hoveredSlot.getStack().getCount());
+            if (currentItem.sellValue != -1) {
+                value = (int)(((float) currentItem.sellValue / (float) currentItem.count) * this.hoveredSlot.getStack().getCount());
+            }
             this.renderTooltip(Arrays.asList(this.hoveredSlot.getStack().getItem().getName().getString() + " x " + this.hoveredSlot.getStack().getCount()
                     , "Buy: " + ShopBlockContainer.currencyItem.getItem().getName().getString() + " x " + (this.hoveredSlot.getStack().getCount() / currentItem.count) * currentItem.cost,
-                    "Sell: " + ShopBlockContainer.currencyItem.getItem().getName().getString() + " x " + value ), mouseX, mouseY);
+                    "Sell: " + ShopBlockContainer.currencyItem.getItem().getName().getString() + " x " + value,
+                    this.hoveredSlot.slotNumber + ""), mouseX, mouseY);
         }
     }
 

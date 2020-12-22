@@ -1,5 +1,6 @@
 package com.kiee.offlineeconomy.blocks;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.container.Container;
@@ -33,9 +34,17 @@ public class ShopBlockTile extends TileEntity implements ITickableTileEntity, IN
         super(SHOPBLOCK_TILE);
     }
 
+    private boolean hasTicked = false;
     // This is run twice per tick
     @Override
     public void tick() {
+        if (Minecraft.getInstance().world != null && Minecraft.getInstance().world.getDayTime() < 1100 && !hasTicked) {
+            hasTicked = true;
+            System.out.println("hasGenerated = false");
+            ShopBlockContainer.hasGenerated = false;
+        } else if (Minecraft.getInstance().world != null && Minecraft.getInstance().world.getDayTime() > 2000 && hasTicked) {
+            hasTicked = false;
+        }
     }
 
     /// Saving/Loading data (we don't actually need this, but I'm following the tutorial)

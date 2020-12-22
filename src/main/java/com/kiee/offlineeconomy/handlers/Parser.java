@@ -73,14 +73,19 @@ public class Parser {
             String itemName = item[0];
             int itemCount = Integer.parseInt(item[1]);
             int itemCost = Integer.parseInt(item[2]);
+            int sellValue = -1;
+            if (item.length > 3) {
+                sellValue = Integer.parseInt(item[3]);
+            }
             Item newItem;
             try {
                 newItem = ForgeRegistries.ITEMS.getValue(new ResourceLocation(itemName));
             } catch (ResourceLocationException e) {
                 return;
             }
-            ShopItem shopItem = new ShopItem(itemName, newItem, itemCount, itemCost);
+            ShopItem shopItem = new ShopItem(itemName, newItem, itemCount, itemCost, sellValue);
             ShopBlockContainer.shopItems.add(shopItem);
+            System.out.println("Finished registerItems");
         }
 
     }

@@ -27,6 +27,7 @@ import net.minecraftforge.items.SlotItemHandler;
 import net.minecraftforge.items.wrapper.InvWrapper;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.GameData;
+import org.apache.logging.log4j.core.tools.Generate;
 
 import javax.annotation.Nonnull;
 
@@ -42,22 +43,34 @@ public class ShopBlockContainer extends Container {
     private static ArrayList<ShopItem> _shopItems = new ArrayList<>();
 
     private TileEntity tileEntity;
-    private PlayerEntity playerEntity;
+    public static PlayerEntity playerEntity;
     private IItemHandler playerInventory;
 
     private IItemHandler inputHandler;
     private IItemHandler outputHandler;
+    public static boolean hasGenerated = false;
 
     public ShopBlockContainer(int id, World world, BlockPos position, PlayerInventory playerInventory, PlayerEntity player) {
         super(SHOPBLOCK_CONTAINER, id);
 
-        // TODO: regen each day
-        generateList();
-
-        tileEntity = world.getTileEntity(position);
+        this.tileEntity = world.getTileEntity(position);
         this.playerEntity = player;
         this.playerInventory = new InvWrapper(playerInventory);
 
+        if (!hasGenerated) {
+            System.out.println("Has Generated.");
+            generateList();
+        }
+        GenerateShopItemSlots();
+
+        // The position of the top-left corner of the player inventory
+        layoutPlayerInventorySlots(8, 129);
+    }
+
+
+
+    public void GenerateShopItemSlots() {
+        hasGenerated = true;
         tileEntity.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY).ifPresent(_in -> {
 
             this.outputHandler = new ItemStackHandler(1) { // Output
@@ -95,6 +108,9 @@ public class ShopBlockContainer extends Container {
                         }
                         int baseValue = shopItem.cost;
                         int value = (int)((((float) baseValue / (float) shopItem.count) * 0.75f) * this.getStackInSlot(0).getCount());
+                        if (shopItem.sellValue != -1) {
+                            value = (int)(((float) shopItem.sellValue / (float) shopItem.count) * this.getStackInSlot(0).getCount());;
+                        }
 
                         if (value >= 1) {
                             outputHandler.insertItem(0, new ItemStack(ShopBlockContainer.currencyItem, value), true);
@@ -125,9 +141,12 @@ public class ShopBlockContainer extends Container {
             int index = 0;
             for (int y = 0; y < 5; y++) { // for each vertical item slot
                 for (int x = 0; x < 6; x++) { // for each horizontal item slot
-                    if (_shopItems.size() < index+1) {
+                    if (_shopItems.size()-1 < index) {
+                        System.out.println("Breaking early at index: " + index + " / " + _shopItems.size());
                         break;
                     }
+                    //System.out.println("index: " + index + " / " + _shopItems.size());
+                    //System.out.println("index: " + index + " / " + shopItems.size());
                     int itemCount = _shopItems.get(index).count;
                     int itemCost = _shopItems.get(index).cost;
                     Item newItem = _shopItems.get(index).item;
@@ -156,16 +175,14 @@ public class ShopBlockContainer extends Container {
 
 
                     };
-                    addSlot(new SlotItemHandler(shopItemsHandler, index, 50+(18 * x), 13+(18 * y) )); // ShopSlot
+                    Slot thisSlot = addSlot(new SlotItemHandler(shopItemsHandler, index, 50+(18 * x), 13+(18 * y) )); // ShopSlot
                     shopItemsHandler.insertItem(index, new ItemStack(newItem, itemCount), true);
-                    //System.out.println("New ShopItem: " + newItem.getName().getString() + " x" + itemCount +" cost: " + itemCost);
+                    //shopItemsHandler.insertItem(index, new ItemStack(Items.DIAMOND_BLOCK, 2), true);
+                    System.out.println("Slot: " + thisSlot.slotNumber + " Slot: " + newItem.getName().getString() + " x" + itemCount +" cost: " + itemCost);
                     index++;
                 }
             }
         });
-
-        // The position of the top-left corner of the player inventory
-        layoutPlayerInventorySlots(8, 129);
     }
 
     public ShopItem CheckItem(Item item) {
@@ -178,12 +195,20 @@ public class ShopBlockContainer extends Container {
     }
 
     private ArrayList<ShopItem> generateList() {
+        ArrayList<String> keys = new ArrayList<>();
         _shopItems.clear();
         Random generator = new Random();
         if (shopItems.size() > 30) {
             for (int index = 0; index < 30; index++ ) {
-                int randomIndex = generator.nextInt(shopItems.size()); // random item
-                if (!_shopItems.contains(shopItems.get(randomIndex))) {
+                int randomIndex = -1;
+                while ( randomIndex == -1 || keys.contains(shopItems.get(randomIndex).name)) {
+                    randomIndex = generator.nextInt(shopItems.size());
+                    if (keys.size() >= shopItems.size()) {
+                        break;
+                    }
+                }
+                if (!keys.contains(shopItems.get(randomIndex).name) && !_shopItems.contains(shopItems.get(randomIndex))) {
+                    keys.add(shopItems.get(randomIndex).name);
                     _shopItems.add(shopItems.get(randomIndex));
                 }
             }

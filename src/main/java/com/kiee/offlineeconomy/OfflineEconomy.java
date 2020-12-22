@@ -42,6 +42,7 @@ public class OfflineEconomy
     public OfflineEconomy() {
         // Register the setup method for modloading
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
+        new Parser().init();
     }
 
     // run after registerItems
@@ -49,7 +50,6 @@ public class OfflineEconomy
         modSetup = new ModSetup();
         modSetup.init();
         proxy.init();
-        new Parser().init();
     }
 
 
