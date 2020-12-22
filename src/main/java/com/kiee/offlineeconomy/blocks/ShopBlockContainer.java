@@ -1,37 +1,26 @@
 package com.kiee.offlineeconomy.blocks;
 
-import com.kiee.offlineeconomy.OfflineEconomy;
 import com.kiee.offlineeconomy.handlers.ShopItem;
-import net.minecraft.client.gui.widget.button.Button;
+import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.inventory.container.ClickType;
 import net.minecraft.inventory.container.Container;
 import net.minecraft.inventory.container.Slot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.IItemProvider;
 import net.minecraft.util.IWorldPosCallable;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.ResourceLocationException;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.TextComponent;
 import net.minecraft.world.World;
-import net.minecraftforge.fml.common.registry.GameRegistry;
-import net.minecraftforge.items.CapabilityItemHandler;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.ItemStackHandler;
-import net.minecraftforge.items.SlotItemHandler;
+import net.minecraftforge.items.*;
 import net.minecraftforge.items.wrapper.InvWrapper;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.GameData;
-import org.apache.logging.log4j.core.tools.Generate;
 
 import javax.annotation.Nonnull;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Random;
 
 import static com.kiee.offlineeconomy.blocks.BlockList.SHOPBLOCK_CONTAINER;
@@ -48,7 +37,10 @@ public class ShopBlockContainer extends Container {
 
     private IItemHandler inputHandler;
     private IItemHandler outputHandler;
+    IItemHandler shopItemsHandler;
     public static boolean hasGenerated = false;
+    private ArrayList<ShopItem> shopSlots = new ArrayList<>();
+    private ArrayList<Slot> _shopSlots = new ArrayList<>();
 
     public ShopBlockContainer(int id, World world, BlockPos position, PlayerInventory playerInventory, PlayerEntity player) {
         super(SHOPBLOCK_CONTAINER, id);
@@ -70,119 +62,192 @@ public class ShopBlockContainer extends Container {
 
 
     public void GenerateShopItemSlots() {
+        shopSlots.clear();
+        _shopSlots.clear();
         hasGenerated = true;
-        tileEntity.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY).ifPresent(_in -> {
 
-            this.outputHandler = new ItemStackHandler(1) { // Output
+        this.outputHandler = new ItemStackHandler(1) { // Output
 
-                @Nonnull
-                @Override // Prevents player from adding to slot
-                public ItemStack insertItem(int slot, @Nonnull ItemStack stack, boolean simulate) {
-                    if (simulate) {
-                        this.getStackInSlot(0).setCount(0); // clear slot
-                        super.insertItem(slot, stack, false);
-                    }
-                    return stack;
+            @Nonnull
+            @Override // Prevents player from adding to slot
+            public ItemStack insertItem(int slot, @Nonnull ItemStack stack, boolean simulate) {
+                if (simulate) {
+                    this.getStackInSlot(0).setCount(0); // clear slot
+                    super.insertItem(slot, stack, false);
                 }
+                return stack;
+            }
 
-                @Nonnull
-                @Override
-                public ItemStack extractItem(int slot, int amount, boolean simulate) {
-                    if (!simulate) {
-                        inputHandler.getStackInSlot(0).setCount(0);
-                    }
-                    return super.extractItem(slot, amount, simulate);
+            @Nonnull
+            @Override
+            public ItemStack extractItem(int slot, int amount, boolean simulate) {
+                if (!simulate) {
+                    inputHandler.getStackInSlot(0).setCount(0);
                 }
-            };
-            Slot slot = addSlot(new SlotItemHandler(outputHandler, 0, 15, 61 ) );
+                return super.extractItem(slot, amount, simulate);
+            }
+        };
+        Slot outputSlot = addSlot(new SlotItemHandler(outputHandler, 0, 15, 61 ) );
+        this.inputHandler = new ItemStackHandler(1) { // Output
+            @Override
+            protected void onContentsChanged(int slot) {
+                if (!this.getStackInSlot(0).isEmpty() && this.getStackInSlot(0).getItem() != ShopBlockContainer.currencyItem) {
 
-            this.inputHandler = new ItemStackHandler(1) { // Output
-                @Override
-                protected void onContentsChanged(int slot) {
-                    if (!this.getStackInSlot(0).isEmpty() && this.getStackInSlot(0).getItem() != ShopBlockContainer.currencyItem) {
-
-                        ShopItem shopItem = CheckItem(this.getStackInSlot(0).getItem());
-                        if (shopItem == null) {
-                            outputHandler.getStackInSlot(0).setCount(0);
-                            return;
-                        }
-                        int baseValue = shopItem.cost;
-                        int value = (int)((((float) baseValue / (float) shopItem.count) * 0.75f) * this.getStackInSlot(0).getCount());
-                        if (shopItem.sellValue != -1) {
-                            value = (int)(((float) shopItem.sellValue / (float) shopItem.count) * this.getStackInSlot(0).getCount());;
-                        }
-
-                        if (value >= 1) {
-                            outputHandler.insertItem(0, new ItemStack(ShopBlockContainer.currencyItem, value), true);
-                        }
-                    } else {
+                    ShopItem shopItem = CheckItem(this.getStackInSlot(0).getItem());
+                    if (shopItem == null) {
                         outputHandler.getStackInSlot(0).setCount(0);
+                        return;
                     }
-                    super.onContentsChanged(slot);
-                }
-
-                @Nonnull
-                @Override
-                public ItemStack insertItem(int slot, @Nonnull ItemStack stack, boolean simulate) {
-                    _in.insertItem(slot, stack, simulate);
-                    return super.insertItem(slot, stack, simulate);
-                }
-
-                @Nonnull
-                @Override
-                public ItemStack extractItem(int slot, int amount, boolean simulate) {
-                    _in.extractItem(slot, amount, simulate);
-                    return super.extractItem(slot, amount, simulate);
-                }
-            };
-            //inputHandler.insertItem(0, _in.getStackInSlot(0), false);
-            addSlot(new SlotItemHandler(inputHandler, 0, 15, 36 )); // Input
-
-            int index = 0;
-            for (int y = 0; y < 5; y++) { // for each vertical item slot
-                for (int x = 0; x < 6; x++) { // for each horizontal item slot
-                    if (_shopItems.size()-1 < index) {
-                        System.out.println("Breaking early at index: " + index + " / " + _shopItems.size());
-                        break;
+                    int baseValue = shopItem.cost;
+                    int value = (int)((((float) baseValue / (float) shopItem.count) * 0.75f) * this.getStackInSlot(0).getCount());
+                    if (shopItem.sellValue != -1) {
+                        value = (int)(((float) shopItem.sellValue / (float) shopItem.count) * this.getStackInSlot(0).getCount());
                     }
-                    //System.out.println("index: " + index + " / " + _shopItems.size());
-                    //System.out.println("index: " + index + " / " + shopItems.size());
-                    int itemCount = _shopItems.get(index).count;
-                    int itemCost = _shopItems.get(index).cost;
-                    Item newItem = _shopItems.get(index).item;
 
-                    IItemHandler shopItemsHandler = new ItemStackHandler(30) {
+                    if (value >= 1) {
+                        outputHandler.insertItem(0, new ItemStack(ShopBlockContainer.currencyItem, value), true);
+                    }
+                } else {
+                    outputHandler.getStackInSlot(0).setCount(0);
+                }
+                super.onContentsChanged(slot);
+            }
 
-                        @Nonnull
-                        @Override // Prevents player from removing from slot
-                        public ItemStack extractItem(int slot, int amount, boolean simulate) {
-                            //System.out.println(newItem.getTranslationKey());
-                            if (inputHandler.getStackInSlot(0).getCount() >= itemCost && inputHandler.getStackInSlot(0).getItem() == currencyItem) { // if requirements are met
-                                inputHandler.extractItem(0, itemCost, simulate);
-                                //ItemStack superExtract = super.extractItem(slot, amount, simulate);
-                                return new ItemStack(newItem, itemCount);
-                            }
-                            return ItemStack.EMPTY;
+            @Nonnull
+            @Override
+            public ItemStack insertItem(int slot, @Nonnull ItemStack stack, boolean simulate) {
+                return super.insertItem(slot, stack, simulate);
+            }
+
+            @Nonnull
+            @Override
+            public ItemStack extractItem(int slot, int amount, boolean simulate) {
+                return super.extractItem(slot, amount, simulate);
+            }
+        };
+        Slot inputSlot = addSlot(new SlotItemHandler(inputHandler, 0, 15, 36 )); // Input
+
+        _shopSlots.add(outputSlot);
+        _shopSlots.add(inputSlot);
+        shopSlots.add(null);
+        shopSlots.add(null);
+
+        shopItemsHandler = new ItemStackHandler(30) {
+
+            @Nonnull
+            @Override // Prevents player from removing from slot
+            public ItemStack extractItem(int slot, int amount, boolean simulate) {
+                if (!inputHandler.getStackInSlot(0).isEmpty() && GetShopItemFromSlot(slot+2) != null && inputHandler.getStackInSlot(0).getCount() >= GetShopItemFromSlot(slot+2).cost && inputHandler.getStackInSlot(0).getItem() == currencyItem) { // if requirements are met
+                    inputHandler.extractItem(0, GetShopItemFromSlot(slot+2).cost, simulate);
+                    //this.insertItem(slot, new ItemStack(GetShopItemFromSlot(slot).item, GetShopItemFromSlot(slot).count), simulate);
+                    return ItemHandlerHelper.copyStackWithSize(this.stacks.get(slot), this.stacks.get(slot).getCount() + amount);
+                }
+                return ItemStack.EMPTY;
+            }
+            @Nonnull
+            @Override // Prevents player from adding to slot
+            public ItemStack insertItem(int slot, @Nonnull ItemStack stack, boolean simulate) {
+                if (simulate) {
+                    super.insertItem(slot, stack, false);
+                }
+                return stack;
+            }
+
+
+        };
+        int index = 0;
+        for (int y = 0; y < 5; y++) { // for each vertical item slot
+            for (int x = 0; x < 6; x++) { // for each horizontal item slot
+                if (_shopItems.size()-1 < index) {
+                    break;
+                }
+                ShopItem currentItem = _shopItems.get(index);
+                int itemCount = currentItem.count;
+                int itemCost = currentItem.cost;
+                Item newItem = currentItem.item;
+
+                Slot newSlot = addSlot(new SlotItemHandler(shopItemsHandler, index, 50+(18 * x), 13+(18 * y) )); // ShopSlot
+                shopItemsHandler.insertItem(index, new ItemStack(newItem, itemCount), true);
+                _shopSlots.add(newSlot);
+                shopSlots.add(currentItem);
+                index++;
+            }
+        }
+    }
+
+    @Nonnull
+    @Override
+    public void onContainerClosed(PlayerEntity playerIn) {
+        if (!inputHandler.getStackInSlot(0).isEmpty()) {
+            playerIn.dropItem(inputHandler.getStackInSlot(0).getStack(), false);
+        }
+        super.onContainerClosed(playerIn);
+    }
+
+    //*
+    @Nonnull
+    @Override
+    public ItemStack slotClick(int slotId, int dragType, ClickType clickTypeIn, PlayerEntity player) {
+
+        PlayerInventory playerinventory = player.inventory;
+
+        if (slotId < 0) return ItemStack.EMPTY;
+        if (clickTypeIn == ClickType.PICKUP_ALL) clickTypeIn = ClickType.PICKUP;
+        if (clickTypeIn == ClickType.PICKUP && !Minecraft.getInstance().player.inventory.getItemStack().isEmpty()
+            && !this.inventorySlots.get(slotId).getStack().isEmpty()
+            && !Minecraft.getInstance().player.inventory.getItemStack().isEmpty()
+            && this.inventorySlots.get(slotId).getStack().getItem() == Minecraft.getInstance().player.inventory.getItemStack().getItem()
+            && slotId > 1 && slotId < 32) {
+            int dragEvent = getDragEvent(dragType);
+            if (dragEvent != 0) {
+                this.resetDrag();
+                return ItemStack.EMPTY;
+            }
+            ItemStack playerStack = playerinventory.getItemStack();
+            ItemStack itemStack = shopItemsHandler.extractItem(slotId-2, playerStack.getCount(), false);
+            if (itemStack != ItemStack.EMPTY) {
+                playerinventory.setItemStack(itemStack);
+            }
+            return ItemStack.EMPTY;
+        }
+        if (clickTypeIn == ClickType.QUICK_MOVE) { // shift-clicking
+            if (slotId < 2) { // Shift clicking out of input or output slot
+                for (int slot = 32; slot < this.inventorySlots.size(); slot++) {
+                    if (this.inventorySlots.get(slot).getStack().isEmpty() ||
+                    (this.inventorySlots.get(slot).getStack().getItem() ==  this.inventorySlots.get(slotId).getStack().getItem()
+                    && this.inventorySlots.get(slot).getStack().getCount() + this.inventorySlots.get(slotId).getStack().getCount() <= this.inventorySlots.get(slotId).getStack().getMaxStackSize())) {
+                        ItemStack freeSlot = this.inventorySlots.get(slot).getStack();
+                        if (slotId == 0) { // output slot
+                            ItemStack itemStack = outputHandler.extractItem(0, outputHandler.getStackInSlot(0).getCount(), false);
+                            this.inventorySlots.get(slot).putStack(new ItemStack(itemStack.getItem(), itemStack.getCount()+freeSlot.getCount()));
+                        } else {
+                            ItemStack itemStack = inputHandler.extractItem(0, inputHandler.getStackInSlot(0).getCount(), false);
+                            this.inventorySlots.get(slot).putStack(new ItemStack(itemStack.getItem(), itemStack.getCount()+freeSlot.getCount()));
                         }
-                        @Nonnull
-                        @Override // Prevents player from adding to slot
-                        public ItemStack insertItem(int slot, @Nonnull ItemStack stack, boolean simulate) {
-                            if (simulate) {
-                                super.insertItem(slot, stack, false);
-                            }
-                            return stack;
-                        }
-
-
-                    };
-                    Slot thisSlot = addSlot(new SlotItemHandler(shopItemsHandler, index, 50+(18 * x), 13+(18 * y) )); // ShopSlot
-                    shopItemsHandler.insertItem(index, new ItemStack(newItem, itemCount), true);
-                    //shopItemsHandler.insertItem(index, new ItemStack(Items.DIAMOND_BLOCK, 2), true);
-                    System.out.println("Slot: " + thisSlot.slotNumber + " Slot: " + newItem.getName().getString() + " x" + itemCount +" cost: " + itemCost);
-                    index++;
+                        this.inventorySlots.get(slotId).putStack(ItemStack.EMPTY);
+                    }
+                }
+            } else if (slotId > 31) { // Shift clicking from player inventory
+                if (this.inventorySlots.get(1).getStack().isEmpty() && !this.inventorySlots.get(slotId).getStack().isEmpty() ||
+                (this.inventorySlots.get(1).getStack().getItem() ==  this.inventorySlots.get(slotId).getStack().getItem()
+                && this.inventorySlots.get(1).getStack().getCount() + this.inventorySlots.get(slotId).getStack().getCount() <= this.inventorySlots.get(slotId).getStack().getMaxStackSize())) { // if input slot is empty, and current slot is not empty
+                    ItemStack freeSlot = this.inventorySlots.get(1).getStack();
+                    ItemStack itemStack = this.inventorySlots.get(slotId).getStack().copy();
+                    this.inventorySlots.get(1).putStack(new ItemStack(itemStack.getItem(), itemStack.getCount()+freeSlot.getCount()));
+                    this.inventorySlots.get(slotId).putStack(ItemStack.EMPTY);
                 }
             }
-        });
+            return ItemStack.EMPTY;
+        }
+        return super.slotClick(slotId, dragType, clickTypeIn, player);
+    }
+
+    private ShopItem GetShopItemFromSlot(int index) {
+        return shopSlots.get(index);
+    }
+
+    private ItemStack GetStackFromShopItem(ShopItem currentItem) {
+        return new ItemStack(currentItem.item, currentItem.count);
     }
 
     public ShopItem CheckItem(Item item) {
@@ -248,5 +313,4 @@ public class ShopBlockContainer extends Container {
         topRow += 58;
         addSlotRange(playerInventory, 0, leftCol, topRow, 9, 18);
     }
-
 }

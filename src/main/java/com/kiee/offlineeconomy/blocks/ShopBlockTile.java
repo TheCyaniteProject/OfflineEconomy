@@ -5,19 +5,11 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.container.Container;
 import net.minecraft.inventory.container.INamedContainerProvider;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.ITickableTileEntity;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.Direction;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.INBTSerializable;
 import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemStackHandler;
 
@@ -34,46 +26,28 @@ public class ShopBlockTile extends TileEntity implements ITickableTileEntity, IN
         super(SHOPBLOCK_TILE);
     }
 
+
     private boolean hasTicked = false;
-    // This is run twice per tick
+
     @Override
     public void tick() {
-        if (Minecraft.getInstance().world != null && Minecraft.getInstance().world.getDayTime() < 1100 && !hasTicked) {
+        /// Reset shop items list each day
+        if (Minecraft.getInstance().player == null) return;
+        long time = Minecraft.getInstance().player.world.getDayTime();
+        if (time > 24000) {
+            time = -((long)(Math.floor(time / 24000) * 24000L) - time);
+        }
+        if (time < 1500 && !hasTicked) {
             hasTicked = true;
-            System.out.println("hasGenerated = false");
+            System.out.println("OfflineEconomy: It's a new day, a new set of items in the shop!");
             ShopBlockContainer.hasGenerated = false;
-        } else if (Minecraft.getInstance().world != null && Minecraft.getInstance().world.getDayTime() > 2000 && hasTicked) {
+        } else if (time > 1500 && hasTicked) {
             hasTicked = false;
         }
     }
 
-    /// Saving/Loading data (we don't actually need this, but I'm following the tutorial)
-    @Override
-    public void read(CompoundNBT tag) {
-        CompoundNBT inventoryTag = tag.getCompound("inventory");
-        handler.ifPresent(h -> ((INBTSerializable<CompoundNBT>)h).deserializeNBT(inventoryTag));
-        super.read(tag);
-    }
-    @Override
-    public CompoundNBT write(CompoundNBT tag) {
-        handler.ifPresent(h -> {
-            CompoundNBT compound = ((INBTSerializable<CompoundNBT>)h).serializeNBT();
-            tag.put("inventory", compound);
-        });
-        return super.write(tag);
-    }
-
     private IItemHandler createHandler() {
         return new ItemStackHandler(1);
-    }
-
-    @Nonnull
-    @Override
-    public <T> LazyOptional<T> getCapability(@Nonnull Capability<T> cap, @Nullable Direction side) {
-        if (cap == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY) {
-            return handler.cast();
-        }
-        return super.getCapability(cap, side);
     }
 
 

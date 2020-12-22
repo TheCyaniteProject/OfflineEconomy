@@ -49,8 +49,7 @@ public class ShopBlockScreen extends ContainerScreen<ShopBlockContainer> {
             }
             this.renderTooltip(Arrays.asList(this.hoveredSlot.getStack().getItem().getName().getString() + " x " + this.hoveredSlot.getStack().getCount()
                     , "Buy: " + ShopBlockContainer.currencyItem.getItem().getName().getString() + " x " + (this.hoveredSlot.getStack().getCount() / currentItem.count) * currentItem.cost,
-                    "Sell: " + ShopBlockContainer.currencyItem.getItem().getName().getString() + " x " + value,
-                    this.hoveredSlot.slotNumber + ""), mouseX, mouseY);
+                    "Sell: " + ShopBlockContainer.currencyItem.getItem().getName().getString() + " x " + value), mouseX, mouseY);
         }
     }
 
