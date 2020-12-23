@@ -190,9 +190,9 @@ public class ShopBlockContainer extends Container {
     public ItemStack slotClick(int slotId, int dragType, ClickType clickTypeIn, PlayerEntity player) {
 
         PlayerInventory playerinventory = player.inventory;
-
+        System.out.println(clickTypeIn);
         if (slotId < 0) return ItemStack.EMPTY;
-        if (clickTypeIn == ClickType.PICKUP_ALL) clickTypeIn = ClickType.PICKUP;
+        if (clickTypeIn == ClickType.PICKUP_ALL) clickTypeIn = ClickType.PICKUP; //  || clickTypeIn == ClickType.QUICK_CRAFT
         if (clickTypeIn == ClickType.PICKUP && !Minecraft.getInstance().player.inventory.getItemStack().isEmpty()
             && !this.inventorySlots.get(slotId).getStack().isEmpty()
             && !Minecraft.getInstance().player.inventory.getItemStack().isEmpty()
@@ -214,26 +214,26 @@ public class ShopBlockContainer extends Container {
             if (slotId < 2) { // Shift clicking out of input or output slot
                 for (int slot = 32; slot < this.inventorySlots.size(); slot++) {
                     if (this.inventorySlots.get(slot).getStack().isEmpty() ||
-                    (this.inventorySlots.get(slot).getStack().getItem() ==  this.inventorySlots.get(slotId).getStack().getItem()
-                    && this.inventorySlots.get(slot).getStack().getCount() + this.inventorySlots.get(slotId).getStack().getCount() <= this.inventorySlots.get(slotId).getStack().getMaxStackSize())) {
+                            (this.inventorySlots.get(slot).getStack().getItem() == this.inventorySlots.get(slotId).getStack().getItem()
+                                    && this.inventorySlots.get(slot).getStack().getCount() + this.inventorySlots.get(slotId).getStack().getCount() <= this.inventorySlots.get(slotId).getStack().getMaxStackSize())) {
                         ItemStack freeSlot = this.inventorySlots.get(slot).getStack();
                         if (slotId == 0) { // output slot
                             ItemStack itemStack = outputHandler.extractItem(0, outputHandler.getStackInSlot(0).getCount(), false);
-                            this.inventorySlots.get(slot).putStack(new ItemStack(itemStack.getItem(), itemStack.getCount()+freeSlot.getCount()));
+                            this.inventorySlots.get(slot).putStack(new ItemStack(itemStack.getItem(), itemStack.getCount() + freeSlot.getCount()));
                         } else {
                             ItemStack itemStack = inputHandler.extractItem(0, inputHandler.getStackInSlot(0).getCount(), false);
-                            this.inventorySlots.get(slot).putStack(new ItemStack(itemStack.getItem(), itemStack.getCount()+freeSlot.getCount()));
+                            this.inventorySlots.get(slot).putStack(new ItemStack(itemStack.getItem(), itemStack.getCount() + freeSlot.getCount()));
                         }
                         this.inventorySlots.get(slotId).putStack(ItemStack.EMPTY);
                     }
                 }
             } else if (slotId > 31) { // Shift clicking from player inventory
                 if (this.inventorySlots.get(1).getStack().isEmpty() && !this.inventorySlots.get(slotId).getStack().isEmpty() ||
-                (this.inventorySlots.get(1).getStack().getItem() ==  this.inventorySlots.get(slotId).getStack().getItem()
-                && this.inventorySlots.get(1).getStack().getCount() + this.inventorySlots.get(slotId).getStack().getCount() <= this.inventorySlots.get(slotId).getStack().getMaxStackSize())) { // if input slot is empty, and current slot is not empty
+                        (this.inventorySlots.get(1).getStack().getItem() == this.inventorySlots.get(slotId).getStack().getItem()
+                                && this.inventorySlots.get(1).getStack().getCount() + this.inventorySlots.get(slotId).getStack().getCount() <= this.inventorySlots.get(slotId).getStack().getMaxStackSize())) { // if input slot is empty, and current slot is not empty
                     ItemStack freeSlot = this.inventorySlots.get(1).getStack();
                     ItemStack itemStack = this.inventorySlots.get(slotId).getStack().copy();
-                    this.inventorySlots.get(1).putStack(new ItemStack(itemStack.getItem(), itemStack.getCount()+freeSlot.getCount()));
+                    this.inventorySlots.get(1).putStack(new ItemStack(itemStack.getItem(), itemStack.getCount() + freeSlot.getCount()));
                     this.inventorySlots.get(slotId).putStack(ItemStack.EMPTY);
                 }
             }
@@ -266,7 +266,7 @@ public class ShopBlockContainer extends Container {
         if (shopItems.size() > 30) {
             for (int index = 0; index < 30; index++ ) {
                 int randomIndex = -1;
-                while ( randomIndex == -1 || keys.contains(shopItems.get(randomIndex).name)) {
+                while ( randomIndex == -1 || keys.contains(shopItems.get(randomIndex).name) || shopItems.get(randomIndex).cost < 1) {
                     randomIndex = generator.nextInt(shopItems.size());
                     if (keys.size() >= shopItems.size()) {
                         break;

@@ -61,4 +61,6 @@ public class ShopBlockTile extends TileEntity implements ITickableTileEntity, IN
     public Container createMenu(int i, PlayerInventory playerInventory, PlayerEntity playerEntity) {
         return new ShopBlockContainer(i, world, pos, playerInventory, playerEntity);
     }
+
+
 }

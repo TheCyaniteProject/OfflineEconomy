@@ -2,59 +2,82 @@ package com.kiee.offlineeconomy.handlers;
 
 import com.kiee.offlineeconomy.blocks.ShopBlockContainer;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.MinecraftGame;
 import net.minecraft.item.Item;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.ResourceLocationException;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.registries.ForgeRegistries;
+import org.apache.commons.io.FileUtils;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InvalidObjectException;
+import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 
 public class Parser {
 
     public String configFileName = "offlineeconomy.cfg";
     public Path configDir;
+    public String gameDir = "";
 
     public void init() {
         try {
-            String current = new java.io.File( Minecraft.getInstance().gameDir.getPath() ).getCanonicalPath();
-            configDir = Paths.get(current, "config", configFileName);
+            gameDir = new File( Minecraft.getInstance().gameDir.getPath() ).getCanonicalPath();
+            configDir = Paths.get(gameDir, "config", configFileName);
         } catch (IOException e) {
             e.printStackTrace();
         }
 
+        Write();
+        Read();
+    }
+
+    private void Write() {
+        File configFile = configDir.toFile();
+        if (configFile.exists()) return;
+        try {
+            if (configFile.createNewFile()) {
+                //System.out.println("OfflineEconomy: " + Parser.class.getResource("/defaultconfig.cfg"));
+                InputStream stream = this.getClass().getClassLoader().getResourceAsStream("defaultconfig.cfg");
+                //OutputStream out = new FileOutputStream(configFile);
+                FileUtils.copyInputStreamToFile(stream, configFile);
+                stream.close();
+            }
+        } catch (Exception e) {
+            System.err.println("OfflineEconomy: Config Init Exception!");
+            e.printStackTrace();
+        }
+        if (configDir.toFile().exists()) {
+            System.out.println("OfflineEconomy: Saved Config to: " + configDir);
+        } else {
+            System.err.println("OfflineEconomy: Config Init Failed");
+        }
+    }
+
+    private void Read() {
         BufferedReader reader;
+        int count = 0;
         try {
             reader = new BufferedReader(new FileReader(configDir.toFile()));
             String line = reader.readLine();
             while (line != null) {
-                this.parseLine(line);
+                Boolean lineCheck = this.parseLine(line);
+                if (lineCheck) count ++;
                 // read next line
                 line = reader.readLine();
             }
             reader.close();
+            System.out.println("OfflineEconomy: Finished Registering " + count + " Items");
         } catch (IOException e) {
+            System.err.println("OfflineEconomy: Failed to Parse Items");
             e.printStackTrace();
         }
-
-
     }
 
-    private void parseLine(String line) {
+    private Boolean parseLine(String line) {
 
-        // currency_item=minecraft:emerald
+        // currency_item = minecraft:emerald
 
-        // item, count, cost
-        // "shop_item = minecraft:diamond, 1, 10"
+        // item, count, cost, fixed-sale-price (optional)
+        // "shop_item = minecraft:diamond, 1, 10, 1"
 
         line = line.replaceAll("\\s", "");
 
@@ -63,13 +86,13 @@ public class Parser {
             try {
                 currency = ForgeRegistries.ITEMS.getValue(new ResourceLocation(line.replace("currency_item=", "")));
             } catch (ResourceLocationException e) {
-                return;
+                return false;
             }
             ShopBlockContainer.currencyItem = currency;
         } else if (line.startsWith("shop_item=")) {
             line = line.replace("shop_item=", "");
             String[] item = line.split(",");
-
+            if (item.length < 3) return false;
             String itemName = item[0];
             int itemCount = Integer.parseInt(item[1]);
             int itemCost = Integer.parseInt(item[2]);
@@ -81,13 +104,15 @@ public class Parser {
             try {
                 newItem = ForgeRegistries.ITEMS.getValue(new ResourceLocation(itemName));
             } catch (ResourceLocationException e) {
-                return;
+                return false;
             }
             ShopItem shopItem = new ShopItem(itemName, newItem, itemCount, itemCost, sellValue);
-            ShopBlockContainer.shopItems.add(shopItem);
-            System.out.println("Finished registerItems");
+            if (itemCount > 0) {
+                ShopBlockContainer.shopItems.add(shopItem);
+            }
+            return true;
         }
-
+        return false;
     }
 
     public void add(String item, int count, int cost) {

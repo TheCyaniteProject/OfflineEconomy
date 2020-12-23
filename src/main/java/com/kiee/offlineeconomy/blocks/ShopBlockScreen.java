@@ -3,6 +3,7 @@ package com.kiee.offlineeconomy.blocks;
 import com.kiee.offlineeconomy.OfflineEconomy;
 import com.kiee.offlineeconomy.handlers.ShopItem;
 import com.mojang.blaze3d.platform.GlStateManager;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screen.inventory.ContainerScreen;
 import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.entity.player.PlayerInventory;
@@ -25,31 +26,56 @@ public class ShopBlockScreen extends ContainerScreen<ShopBlockContainer> {
 
     @Override
     protected void renderHoveredToolTip(int mouseX, int mouseY) {
-        if (this.minecraft.player.inventory.getItemStack().isEmpty() && this.hoveredSlot != null && this.hoveredSlot.getHasStack()) {
-            if (this.hoveredSlot.getStack().getItem() == ShopBlockContainer.currencyItem) {
-                this.renderTooltip(Arrays.asList(this.hoveredSlot.getStack().getItem().getName().getString() + " x " + this.hoveredSlot.getStack().getCount()
-                        , "Currency!"), mouseX, mouseY);
-                return;
-            }
+        if (Minecraft.getInstance().player.inventory.getItemStack().isEmpty() && this.hoveredSlot != null && this.hoveredSlot.getHasStack()) {
+
+            String lineOne = this.hoveredSlot.getStack().getItem().getName().getString() + " x " + this.hoveredSlot.getStack().getCount();
+            String lineTwo = "";
+            String lineThree = "";
+
             ShopItem currentItem = null;
             for (ShopItem shopItem : ShopBlockContainer.shopItems) {
                 if (shopItem.item == this.hoveredSlot.getStack().getItem()) {
                     currentItem = shopItem;
                 }
             }
-            if (currentItem == null) {
-                this.renderTooltip(Arrays.asList(this.hoveredSlot.getStack().getItem().getName().getString() + " x " + this.hoveredSlot.getStack().getCount()
-                        , "Not For Sale"), mouseX, mouseY);
+
+            if (this.hoveredSlot.getStack().getItem() == ShopBlockContainer.currencyItem) { // Item is currency
+                this.renderTooltip(Arrays.asList(lineOne, "Currency!"), mouseX, mouseY);
                 return;
             }
-            int baseValue = currentItem.cost;
-            int value = (int)((((float) baseValue / (float) currentItem.count) * 0.75f) * this.hoveredSlot.getStack().getCount());
-            if (currentItem.sellValue != -1) {
-                value = (int)(((float) currentItem.sellValue / (float) currentItem.count) * this.hoveredSlot.getStack().getCount());
+
+            if (currentItem == null) {
+                lineTwo = "Not For Sale";
+                this.renderTooltip(Arrays.asList(lineOne, lineTwo, lineThree), mouseX, mouseY);
+                return;
             }
-            this.renderTooltip(Arrays.asList(this.hoveredSlot.getStack().getItem().getName().getString() + " x " + this.hoveredSlot.getStack().getCount()
-                    , "Buy: " + ShopBlockContainer.currencyItem.getItem().getName().getString() + " x " + (this.hoveredSlot.getStack().getCount() / currentItem.count) * currentItem.cost,
-                    "Sell: " + ShopBlockContainer.currencyItem.getItem().getName().getString() + " x " + value), mouseX, mouseY);
+
+            int value = ((int)((((float) currentItem.cost / (float) currentItem.count) * 0.75f) * this.hoveredSlot.getStack().getCount()));
+            lineTwo = "Buy: " + ShopBlockContainer.currencyItem.getItem().getName().getString() + " x " + (this.hoveredSlot.getStack().getCount() / currentItem.count) * currentItem.cost;
+
+            if (currentItem.cost <1) { // Sell only
+                value = (int)(((float) currentItem.sellValue / (float) currentItem.count) * this.hoveredSlot.getStack().getCount());
+                lineThree = "Sell: " + ShopBlockContainer.currencyItem.getItem().getName().getString() + " x " + value;
+                this.renderTooltip(Arrays.asList(lineOne, lineThree), mouseX, mouseY);
+                return;
+            }
+            if (currentItem.sellValue > 0) { // Fixed sell price
+                value = (int)(((float) currentItem.sellValue / (float) currentItem.count) * this.hoveredSlot.getStack().getCount());
+                lineThree = "Sell: " + ShopBlockContainer.currencyItem.getItem().getName().getString() + " x " + value;
+            } else if (currentItem.sellValue == 0) { // Fixed sale price of 0
+                lineThree = "";
+            } else if (value < 1) {
+                lineThree = "Sell: " + ShopBlockContainer.currencyItem.getItem().getName().getString() + " x <1";
+            } else { // Standard lineThree
+                lineThree = "Sell: " + ShopBlockContainer.currencyItem.getItem().getName().getString() + " x " + value;
+            }
+            if (lineTwo != "" && lineThree != "") {
+                this.renderTooltip(Arrays.asList(lineOne, lineTwo, lineThree), mouseX, mouseY);
+            } else if (lineTwo != "") {
+                this.renderTooltip(Arrays.asList(lineOne, lineTwo), mouseX, mouseY);
+            } else if (lineThree != "") {
+                this.renderTooltip(Arrays.asList(lineOne, lineThree), mouseX, mouseY);
+            }
         }
     }
 
