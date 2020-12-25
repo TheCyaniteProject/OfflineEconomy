@@ -35,7 +35,7 @@ public class ShopBlockTile extends TileEntity implements ITickableTileEntity, IN
         if (Minecraft.getInstance().player == null) return;
         long time = Minecraft.getInstance().player.world.getDayTime();
         if (time > 24000) {
-            time = -((long)(Math.floor(time / 24000) * 24000L) - time);
+            time = -((long)(Math.floor(time / 24000f) * 24000L) - time);
         }
         if (time < 1500 && !hasTicked) {
             hasTicked = true;
@@ -50,15 +50,15 @@ public class ShopBlockTile extends TileEntity implements ITickableTileEntity, IN
         return new ItemStackHandler(1);
     }
 
-
+    @Nonnull
     @Override
     public ITextComponent getDisplayName() {
         return new StringTextComponent(getType().getRegistryName().getPath());
     }
 
-    @Nullable
+    @Nonnull
     @Override
-    public Container createMenu(int i, PlayerInventory playerInventory, PlayerEntity playerEntity) {
+    public Container createMenu(int i, @Nonnull PlayerInventory playerInventory, @Nonnull PlayerEntity playerEntity) {
         return new ShopBlockContainer(i, world, pos, playerInventory, playerEntity);
     }
 

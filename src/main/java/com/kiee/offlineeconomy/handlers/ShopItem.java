@@ -5,21 +5,18 @@ import net.minecraft.item.Item;
 public class ShopItem {
     public String name;
     public Item item;
-    public int count;
-    public int cost;
-    public int sellValue = -1;
+    public float cost;
+    public float sellValue = -1;
 
 
-    public ShopItem(String name, Item item, int count, int cost) {
+    public ShopItem(String name, Item item, float cost) {
         this.name = name;
         this.item = item;
-        this.count = count;
         this.cost = cost;
     }
-    public ShopItem(String name, Item item, int count, int cost, int sellValue) {
+    public ShopItem(String name, Item item, float cost, float sellValue) {
         this.name = name;
         this.item = item;
-        this.count = count;
         this.cost = cost;
         this.sellValue = sellValue;
     }

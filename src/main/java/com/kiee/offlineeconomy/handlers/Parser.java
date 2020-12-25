@@ -3,6 +3,7 @@ package com.kiee.offlineeconomy.handlers;
 import com.kiee.offlineeconomy.blocks.ShopBlockContainer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.item.Item;
+import net.minecraft.item.Items;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.ResourceLocationException;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -52,20 +53,25 @@ public class Parser {
         }
     }
 
+    int count = 0;
+    int count2 = 0;
     private void Read() {
+        count = 0;
+        count2 = 0;
         BufferedReader reader;
-        int count = 0;
         try {
             reader = new BufferedReader(new FileReader(configDir.toFile()));
             String line = reader.readLine();
             while (line != null) {
                 Boolean lineCheck = this.parseLine(line);
-                if (lineCheck) count ++;
+                if (!lineCheck)
+                    count2 ++;
                 // read next line
                 line = reader.readLine();
             }
             reader.close();
-            System.out.println("OfflineEconomy: Finished Registering " + count + " Items");
+            System.out.println("OfflineEconomy: Finished Registering " + count + " items");
+            System.out.println("OfflineEconomy: " + count2 + " errors");
         } catch (IOException e) {
             System.err.println("OfflineEconomy: Failed to Parse Items");
             e.printStackTrace();
@@ -74,48 +80,69 @@ public class Parser {
 
     private Boolean parseLine(String line) {
 
-        // currency_item = minecraft:emerald
-
         // item, count, cost, fixed-sale-price (optional)
-        // "shop_item = minecraft:diamond, 1, 10, 1"
+        // "shop_item = minecraft:diamond, 10, 1"
 
         line = line.replaceAll("\\s", "");
 
-        if (line.startsWith("currency_item=")) {
-            Item currency;
-            try {
-                currency = ForgeRegistries.ITEMS.getValue(new ResourceLocation(line.replace("currency_item=", "")));
-            } catch (ResourceLocationException e) {
-                return false;
-            }
-            ShopBlockContainer.currencyItem = currency;
+        if (line.startsWith("sell_value_multiplier=")) {
+
+            line = line.replace("sell_value_multiplier=", "");
+            ShopBlockContainer.sell_value_multiplier = Float.parseFloat(line);
+            return true;
+
         } else if (line.startsWith("shop_item=")) {
+
             line = line.replace("shop_item=", "");
             String[] item = line.split(",");
-            if (item.length < 3) return false;
+            if (item.length < 2) {
+                System.err.println("OfflineEconomyError: OutOfBoundsError: Improper formatting: \"" + line + "\"");
+                return false;
+            }
             String itemName = item[0];
-            int itemCount = Integer.parseInt(item[1]);
-            int itemCost = Integer.parseInt(item[2]);
-            int sellValue = -1;
-            if (item.length > 3) {
-                sellValue = Integer.parseInt(item[3]);
+            float itemCost = 1;
+            float sellValue = -1;
+            if (item.length > 2) {
+                sellValue = Float.parseFloat(item[2]);
+            }
+            try {
+                itemCost = Float.parseFloat(item[1]);
+                if (item.length > 2) {
+                    sellValue = Float.parseFloat(item[2]);
+                }
+            } catch (NumberFormatException e) {
+                System.err.println("OfflineEconomyError: NumberFormatException: Improper formatting \"" + line + "\"");
+                return false;
             }
             Item newItem;
             try {
                 newItem = ForgeRegistries.ITEMS.getValue(new ResourceLocation(itemName));
             } catch (ResourceLocationException e) {
+                System.err.println("OfflineEconomyError: ItemNameError: " + itemName + " is not a valid item name \"" + line + "\"");
                 return false;
             }
-            ShopItem shopItem = new ShopItem(itemName, newItem, itemCount, itemCost, sellValue);
-            if (itemCount > 0) {
+            ShopItem shopItem = new ShopItem(itemName, newItem, itemCost, sellValue);
+            if (newItem != null && !ShopBlockContainer.shopItems.contains(shopItem) && newItem != Items.AIR) {
                 ShopBlockContainer.shopItems.add(shopItem);
+                System.out.println("OfflineEconomy: Registered item: " + newItem.getItem().getName().getString());
             }
+            count ++;
+            return true;
+
+        }
+        if (!line.startsWith("#") && !line.equals("")) {
+            System.err.println("OfflineEconomyError: UnknownError: Unparseable string \"" + line + "\"");
+            return false;
+        } else {
             return true;
         }
-        return false;
     }
 
-    public void add(String item, int count, int cost) {
+    public void add(String item) {
+
+    }
+
+    public void set(String item) {
 
     }
 
