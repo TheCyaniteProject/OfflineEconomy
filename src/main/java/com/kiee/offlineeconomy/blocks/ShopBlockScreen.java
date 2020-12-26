@@ -9,6 +9,7 @@ import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.ITextComponent;
 
+import java.text.DecimalFormat;
 import java.util.*;
 
 
@@ -32,7 +33,7 @@ public class ShopBlockScreen extends ContainerScreen<ShopBlockContainer> {
     }
     @Override
     protected void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {
-        this.font.drawString("$"+ screenContainer.credit, 7, 3, 16777215);
+        this.font.drawString("$"+ (int)screenContainer.credit, 7, 3, 16777215);
         this.font.drawString(this.playerInventory.getDisplayName().getFormattedText(), 7, 119.0f, 4210752);
     }
 
@@ -50,8 +51,6 @@ public class ShopBlockScreen extends ContainerScreen<ShopBlockContainer> {
         if (Minecraft.getInstance().player.inventory.getItemStack().isEmpty() && this.hoveredSlot != null && this.hoveredSlot.getHasStack()) {
 
             String lineOne = this.hoveredSlot.getStack().getItem().getName().getString();
-            if (this.hoveredSlot.getStack().getCount() > 1)
-                lineOne = lineOne +" x "+ this.hoveredSlot.getStack().getCount();
             String lineTwo = "";
 
             ShopItem currentItem = null;
@@ -62,14 +61,20 @@ public class ShopBlockScreen extends ContainerScreen<ShopBlockContainer> {
             }
 
             if (currentItem != null) {
-                if (currentItem.sellValue > 0) {
-                    lineTwo = "Buy: "+ currentItem.cost + " | Sell: " + currentItem.sellValue;
-                } else if (currentItem.sellValue == 0) {
-                    lineTwo = "Buy: "+ currentItem.cost;
+                if (this.hoveredSlot.slotNumber > 30) {
+                    if (currentItem.sellValue > 0) {
+                        lineTwo = "Sell: " + new DecimalFormat("#.0").format(currentItem.sellValue * this.hoveredSlot.getStack().getCount()) +" ("+ this.hoveredSlot.getStack().getCount() + ")";
+                    } else if (currentItem.sellValue == 0) {
+                        lineTwo = "Not For Sale";
+                    } else {
+                        lineTwo = "Sell: " + new DecimalFormat("#.0").format((currentItem.cost * ShopBlockContainer.sell_value_multiplier) * this.hoveredSlot.getStack().getCount()) +" ("+ this.hoveredSlot.getStack().getCount() + ")";
+                    }
                 } else {
-                    lineTwo = "Buy: "+ currentItem.cost + " | Sell: " + (currentItem.cost * ShopBlockContainer.sell_value_multiplier);
+                    lineTwo = "Buy: "+ new DecimalFormat("#.0#").format(currentItem.cost) + " ea.";
                 }
                 this.renderTooltip(Arrays.asList(lineOne, lineTwo), mouseX, mouseY);
+            } else {
+                this.renderTooltip(lineOne, mouseX, mouseY);
             }
         }
     }

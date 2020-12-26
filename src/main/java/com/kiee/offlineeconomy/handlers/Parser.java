@@ -15,9 +15,9 @@ import java.nio.file.Paths;
 
 public class Parser {
 
-    public String configFileName = "offlineeconomy.cfg";
-    public Path configDir;
-    public String gameDir = "";
+    public static String configFileName = "offlineeconomy.cfg";
+    public static Path configDir;
+    public static String gameDir = "";
 
     public void init() {
         try {
@@ -137,6 +137,27 @@ public class Parser {
             return true;
         }
     }
+
+    /*public static void SavePlayerData() {
+        Path path = Paths.get(gameDir, "config", "");
+        Minecraft.getInstance().world.
+        BufferedReader reader;
+        try {
+            reader = new BufferedReader(new FileReader(configDir.toFile()));
+            String line = reader.readLine();
+            while (line != null) {
+                Boolean lineCheck = this.parseLine(line);
+                if (!lineCheck) {
+
+                }
+                // read next line
+                line = reader.readLine();
+            }
+            reader.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }//*/
 
     public void add(String item) {
 

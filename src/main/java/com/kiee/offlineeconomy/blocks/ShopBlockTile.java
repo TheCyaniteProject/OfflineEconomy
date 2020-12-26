@@ -29,6 +29,8 @@ public class ShopBlockTile extends TileEntity implements ITickableTileEntity, IN
 
     private boolean hasTicked = false;
 
+
+
     @Override
     public void tick() {
         /// Reset shop items list each day

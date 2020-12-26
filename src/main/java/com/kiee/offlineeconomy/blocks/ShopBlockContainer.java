@@ -4,15 +4,21 @@ import com.kiee.offlineeconomy.handlers.ShopItem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.inventory.InventoryHelper;
 import net.minecraft.inventory.container.ClickType;
 import net.minecraft.inventory.container.Container;
 import net.minecraft.inventory.container.Slot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.network.datasync.DataParameter;
+import net.minecraft.network.datasync.DataSerializers;
+import net.minecraft.network.datasync.EntityDataManager;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.IWorldPosCallable;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraft.world.storage.WorldSavedData;
 import net.minecraftforge.items.*;
 import net.minecraftforge.items.wrapper.InvWrapper;
 
@@ -31,12 +37,15 @@ public class ShopBlockContainer extends Container {
     private final TileEntity tileEntity;
     public static PlayerEntity playerEntity;
     private final IItemHandler playerInventory;
+    private static final DataParameter<Float> CREDITS = EntityDataManager.createKey(PlayerEntity.class, DataSerializers.FLOAT);
 
     public IItemHandler inputHandler;
     private IItemHandler shopItemsHandler;
     public static boolean hasGenerated = false;
     private ArrayList<ShopItem> shopSlots = new ArrayList<>();
-    public int credit = 0; // Amount of stored currency
+
+    public static float credit = -1; // Amount of stored currency
+    String key;
 
     public ShopBlockContainer(int id, World world, BlockPos position, PlayerInventory playerInventory, PlayerEntity player) {
         super(SHOPBLOCK_CONTAINER, id);
@@ -49,13 +58,43 @@ public class ShopBlockContainer extends Container {
             System.out.println("Has Generated.");
             generateList();
         }
+
         GenerateShopItemSlots();
-        if (tileEntity.getTileData().getInt("oeCredit") > 0) {
-            credit = tileEntity.getTileData().getInt("oeCredit");
+        key = "oeBalance_" + playerEntity.getDisplayName().getString();
+        if (tileEntity != null && playerEntity.getPersistentData().contains("oeCredits")) {
+            tileEntity.getTileData().putFloat(key, playerEntity.getPersistentData().getFloat("oeCredits"));
+        }
+        if (credit == -1) {
+            LoadCredits();
         }
 
         // The position of the top-left corner of the player inventory
         layoutPlayerInventorySlots(8, 129);
+    }
+
+
+
+    public void SaveCredits() {
+        if (credit != -1) {
+            System.out.println("PreSave: " + tileEntity.getTileData().getFloat(key) );
+            tileEntity.getTileData().putFloat(key, credit);
+            playerEntity.getPersistentData().putFloat("oeCredits", credit);
+            System.out.println("Saved: " + credit);
+        }
+    }
+
+    public void LoadCredits() {
+        if (credit == -1) {
+            credit = tileEntity.getTileData().getFloat(key);
+            System.out.println("Loaded: " + credit);
+        }
+        //credit = playerEntity.getPersistentData().getFloat("oeCredit");
+    }
+
+    @Override
+    public void onContainerClosed(@Nonnull PlayerEntity playerIn) {
+        SaveCredits();
+        super.onContainerClosed(playerIn);
     }
 
 
@@ -150,14 +189,13 @@ public class ShopBlockContainer extends Container {
                     } else {
                         credit += ((currentItem.cost * sell_value_multiplier) * stack.getCount());
                     }
+                    this.stacks.get(0).setCount(0);
                 }
                 return ItemStack.EMPTY;
             }
 
             @Override
             protected void onContentsChanged(int slot) {
-                this.stacks.get(0).setCount(0);
-                tileEntity.getTileData().putInt("oeCredit", credit);
                 super.onContentsChanged(slot);
             }
         };
@@ -171,9 +209,9 @@ public class ShopBlockContainer extends Container {
             @Override // Prevents player from removing from slot
             public ItemStack extractItem(int slot, int amount, boolean simulate) {
                 if (!simulate) {
-                    if (credit >= GetShopItemFromSlot(slot).cost ) {
-                        credit -= GetShopItemFromSlot(slot).cost;
-                        super.extractItem(slot, amount, false);
+                    if (credit >= (GetShopItemFromSlot(slot).cost * amount) ) {
+                        credit -= (GetShopItemFromSlot(slot).cost * amount);
+                        return new ItemStack(this.getStackInSlot(slot).getItem(), amount);
                     }
                 }
                 return ItemStack.EMPTY;
@@ -209,23 +247,15 @@ public class ShopBlockContainer extends Container {
         }
     }
 
-
-    @Override
-    public void onContainerClosed(@Nonnull PlayerEntity playerIn) {
-        tileEntity.getTileData().putInt("oeCredit", credit);
-        super.onContainerClosed(playerIn);
-    }
-
     //*
     @Nonnull
     @Override
     public ItemStack slotClick(int slotId, int dragType, ClickType clickTypeIn, PlayerEntity player) {
         int numberOfShopSlots = 30;
-        int total = 1 + numberOfShopSlots;
+        int total = numberOfShopSlots;
         PlayerInventory playerinventory = player.inventory;
-
         if (clickTypeIn == ClickType.PICKUP_ALL) {
-            if (slotId > total) {
+            if (slotId > total+1) {
                 return super.slotClick(slotId, dragType, clickTypeIn, player);
             } else {
                 clickTypeIn = ClickType.PICKUP;
@@ -235,37 +265,52 @@ public class ShopBlockContainer extends Container {
             return super.slotClick(slotId, dragType, clickTypeIn, player);
         }
         if (slotId < 0) return ItemStack.EMPTY;
-        if (slotId == 0 && clickTypeIn == ClickType.PICKUP && !Minecraft.getInstance().player.inventory.getItemStack().isEmpty()) {
-            inputHandler.insertItem(0, playerinventory.getItemStack().copy(), false);
-            playerinventory.setItemStack(ItemStack.EMPTY);
+        if (slotId == 0 && clickTypeIn == ClickType.PICKUP && !playerinventory.getItemStack().isEmpty()) {
+            ItemStack returned = inputHandler.insertItem(0, playerinventory.getItemStack().copy(), false);
+            playerinventory.setItemStack(returned);
             return ItemStack.EMPTY;
         }
-        if (clickTypeIn == ClickType.PICKUP && !Minecraft.getInstance().player.inventory.getItemStack().isEmpty()
+        if (slotId > 0 && slotId < total+1 && clickTypeIn == ClickType.PICKUP && playerinventory.getItemStack().isEmpty()) {
+
+            ItemStack itemStack = shopItemsHandler.extractItem(slotId - 1, 1, false);
+            if (itemStack != ItemStack.EMPTY) {
+                playerinventory.setItemStack(itemStack);
+            }
+            return ItemStack.EMPTY;
+        }
+        if (clickTypeIn == ClickType.PICKUP && !playerinventory.getItemStack().isEmpty()
             && !this.inventorySlots.get(slotId).getStack().isEmpty()
-            && !Minecraft.getInstance().player.inventory.getItemStack().isEmpty()
-            && this.inventorySlots.get(slotId).getStack().getItem() == Minecraft.getInstance().player.inventory.getItemStack().getItem()
-            && slotId > 0 && slotId < total) {
+            && this.inventorySlots.get(slotId).getStack().getItem() == playerinventory.getItemStack().getItem()
+            && slotId > 0 && slotId < total+1) { // If clicking a shop slot with the same item in your hand
             int dragEvent = getDragEvent(dragType);
             if (dragEvent != 0) {
                 this.resetDrag();
                 return ItemStack.EMPTY;
             }
             ItemStack playerStack = playerinventory.getItemStack();
-            ItemStack itemStack = shopItemsHandler.extractItem(slotId - 1, playerStack.getCount(), false);
+
+            ItemStack itemStack = shopItemsHandler.extractItem(slotId-1, playerStack.getCount(), false);
             if (itemStack != ItemStack.EMPTY) {
-                playerinventory.setItemStack(itemStack);
+                playerinventory.setItemStack(new ItemStack(itemStack.getItem(), itemStack.getCount()+playerStack.getCount()));
             }
             return ItemStack.EMPTY;
         }
         if (clickTypeIn == ClickType.QUICK_MOVE) { // shift-clicking
-            if (slotId > total+1) { // Shift clicking from player inventory
+            if (slotId > 0 && slotId < total+1) {
+                ItemStack returned = ItemHandlerHelper.insertItemStacked(playerInventory, new ItemStack(shopItemsHandler.getStackInSlot(slotId-1).getItem(), shopItemsHandler.getStackInSlot(slotId-1).getMaxStackSize()), true);
+                if (returned.isEmpty()) {
+                    ItemStack itemStack = shopItemsHandler.extractItem(slotId - 1, shopItemsHandler.getStackInSlot(slotId-1).getMaxStackSize(), false);
+                    ItemHandlerHelper.insertItemStacked(playerInventory, itemStack, false);
+                }
+
+                return ItemStack.EMPTY;
+            } else if (slotId > total) { // Shift clicking from player inventory
                 if (this.inventorySlots.get(0).getStack().isEmpty() && !this.inventorySlots.get(slotId).getStack().isEmpty() ||
                         (this.inventorySlots.get(0).getStack().getItem() == this.inventorySlots.get(slotId).getStack().getItem()
-                                && this.inventorySlots.get(0).getStack().getCount() + this.inventorySlots.get(slotId).getStack().getCount() <= this.inventorySlots.get(slotId).getStack().getMaxStackSize())) { // if input slot is empty, and current slot is not empty
-                    ItemStack freeSlot = this.inventorySlots.get(0).getStack();
+                                && this.inventorySlots.get(0).getStack().getCount() + this.inventorySlots.get(slotId).getStack().getCount() <= this.inventorySlots.get(slotId).getStack().getMaxStackSize())) {
                     ItemStack itemStack = this.inventorySlots.get(slotId).getStack().copy();
-                    this.inventorySlots.get(0).putStack(new ItemStack(itemStack.getItem(), itemStack.getCount() + freeSlot.getCount()));
-                    this.inventorySlots.get(slotId).putStack(ItemStack.EMPTY);
+                    ItemStack returned = inputHandler.insertItem(0, itemStack, false);
+                    this.inventorySlots.get(slotId).putStack(returned);
                 }
             }
             return ItemStack.EMPTY;

@@ -117,7 +117,7 @@ jar {
         attributes([
             "Specification-Title": "offlineeconomy",
             "Specification-Vendor": "offlineeconomykieee",
-            "Specification-Version": "1", // We are version 1 of ourselves
+            "Specification-Version": "1.2.1",
             "Implementation-Title": project.name,
             "Implementation-Version": "${version}",
             "Implementation-Vendor" :"offlineeconomykieee",
