@@ -41,7 +41,7 @@ public class ShopBlockTile extends TileEntity implements ITickableTileEntity, IN
         }
         if (time < 1500 && !hasTicked) {
             hasTicked = true;
-            System.out.println("OfflineEconomy: It's a new day, a new set of items in the shop!");
+            //System.out.println("OfflineEconomy: It's a new day, a new set of items in the shop!");
             ShopBlockContainer.hasGenerated = false;
         } else if (time > 1500 && hasTicked) {
             hasTicked = false;

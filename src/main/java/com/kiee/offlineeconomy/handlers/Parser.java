@@ -63,7 +63,7 @@ public class Parser {
             reader = new BufferedReader(new FileReader(configDir.toFile()));
             String line = reader.readLine();
             while (line != null) {
-                Boolean lineCheck = this.parseLine(line);
+                Boolean lineCheck = parseLine(line);
                 if (!lineCheck)
                     count2 ++;
                 // read next line
@@ -138,26 +138,38 @@ public class Parser {
         }
     }
 
-    /*public static void SavePlayerData() {
-        Path path = Paths.get(gameDir, "config", "");
-        Minecraft.getInstance().world.
-        BufferedReader reader;
+    public static void SavePlayerData(Float input) {
+        String folderName = Minecraft.getInstance().getIntegratedServer().getFolderName();
+        Path path = Paths.get(gameDir, "saves", folderName, "oe_worldbalance.txt");
         try {
-            reader = new BufferedReader(new FileReader(configDir.toFile()));
-            String line = reader.readLine();
-            while (line != null) {
-                Boolean lineCheck = this.parseLine(line);
-                if (!lineCheck) {
+            FileWriter fw = new FileWriter(path.toFile());
 
-                }
-                // read next line
-                line = reader.readLine();
-            }
-            reader.close();
+            fw.write(input.toString());
+
+            fw.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }//*/
+    }
+
+    public static float LoadPlayerData() {
+        String folderName = Minecraft.getInstance().getIntegratedServer().getFolderName();
+        Path path = Paths.get(gameDir, "saves", folderName, "oe_worldbalance.txt");
+        BufferedReader reader;
+        if (!path.toFile().exists()) {
+            SavePlayerData(0f);
+            return 0f;
+        }
+        float output = 0f;
+        try {
+            BufferedReader fileReader = new BufferedReader(new FileReader(path.toFile()));
+            output = Float.parseFloat(fileReader.readLine());
+            fileReader.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return output;
+    }
 
     public void add(String item) {
 

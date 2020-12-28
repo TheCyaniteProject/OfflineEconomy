@@ -1,16 +1,14 @@
 package com.kiee.offlineeconomy.blocks;
 
+import com.kiee.offlineeconomy.handlers.Parser;
 import com.kiee.offlineeconomy.handlers.ShopItem;
-import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.InventoryHelper;
 import net.minecraft.inventory.container.ClickType;
 import net.minecraft.inventory.container.Container;
 import net.minecraft.inventory.container.Slot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.network.datasync.DataParameter;
 import net.minecraft.network.datasync.DataSerializers;
 import net.minecraft.network.datasync.EntityDataManager;
@@ -18,7 +16,6 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.IWorldPosCallable;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraft.world.storage.WorldSavedData;
 import net.minecraftforge.items.*;
 import net.minecraftforge.items.wrapper.InvWrapper;
 
@@ -44,8 +41,7 @@ public class ShopBlockContainer extends Container {
     public static boolean hasGenerated = false;
     private ArrayList<ShopItem> shopSlots = new ArrayList<>();
 
-    public static float credit = -1; // Amount of stored currency
-    String key;
+    public float credit = -1; // Amount of stored currency
 
     public ShopBlockContainer(int id, World world, BlockPos position, PlayerInventory playerInventory, PlayerEntity player) {
         super(SHOPBLOCK_CONTAINER, id);
@@ -55,15 +51,11 @@ public class ShopBlockContainer extends Container {
         this.playerInventory = new InvWrapper(playerInventory);
 
         if (!hasGenerated) {
-            System.out.println("Has Generated.");
+            System.out.println("OfflineEconomy: Generated new shop items.");
             generateList();
         }
 
         GenerateShopItemSlots();
-        key = "oeBalance_" + playerEntity.getDisplayName().getString();
-        if (tileEntity != null && playerEntity.getPersistentData().contains("oeCredits")) {
-            tileEntity.getTileData().putFloat(key, playerEntity.getPersistentData().getFloat("oeCredits"));
-        }
         if (credit == -1) {
             LoadCredits();
         }
@@ -76,17 +68,15 @@ public class ShopBlockContainer extends Container {
 
     public void SaveCredits() {
         if (credit != -1) {
-            System.out.println("PreSave: " + tileEntity.getTileData().getFloat(key) );
-            tileEntity.getTileData().putFloat(key, credit);
-            playerEntity.getPersistentData().putFloat("oeCredits", credit);
-            System.out.println("Saved: " + credit);
+            Parser.SavePlayerData(credit);
+            //playerEntity.getPersistentData().putFloat("oeCredits", credit);
         }
     }
 
     public void LoadCredits() {
         if (credit == -1) {
-            credit = tileEntity.getTileData().getFloat(key);
-            System.out.println("Loaded: " + credit);
+            credit = Parser.LoadPlayerData();
+            //credit = playerEntity.getPersistentData().getFloat("oeCredits");
         }
         //credit = playerEntity.getPersistentData().getFloat("oeCredit");
     }
@@ -102,74 +92,6 @@ public class ShopBlockContainer extends Container {
     public void GenerateShopItemSlots() {
         shopSlots.clear();
         hasGenerated = true;
-
-        /* this.outputHandler = new ItemStackHandler(6) {
-
-            @Nonnull
-            @Override // Prevents player from adding to slot
-            public ItemStack insertItem(int slot, @Nonnull ItemStack stack, boolean simulate) {
-                if (simulate) { // If this was called from us or not.
-
-
-                    displayTotal // The amount of currency in the GUI
-                    credit // The amount of actual currency
-                    potential // the amount of currency which is visual-only
-                    excessOutput // the amount of currency that wont fit in the output
-
-                    if (displayTotal != credit + potential) { // Should we change rendered items?
-                        for (int index = 0; index < outputHandler.getSlots(); index ++) {
-                            this.stacks.get(index).setCount(0);
-                        } // Clear all output slots
-                        excessOutput = 0;
-
-                        int remainder = credit + potential;
-                        for ( int index = 0; remainder != 0; index ++) {
-                            if (index > outputHandler.getSlots()-1) {
-                                excessOutput = remainder;
-                                break;
-                            } // Break if out of bounds
-
-                            if (remainder > currencyItem.getMaxStackSize()) { // Set Stack full
-                                remainder -= currencyItem.getMaxStackSize();
-                                this.stacks.set(index, new ItemStack(currencyItem, currencyItem.getMaxStackSize()));
-                            } else {
-                                this.stacks.set(index, new ItemStack(currencyItem, remainder));
-                            } // Set item stacks
-                        }
-                    } // If not, we just leave things alone
-                    displayTotal = GetTotal(); // GetTotal() should be the same as the starter value for remainder
-                }
-                return ItemStack.EMPTY; // Output value is excess. Because we are storing the excess, we never need to return a value.
-            }
-
-            @Nonnull
-            @Override
-            public ItemStack extractItem(int slot, int amount, boolean simulate) {
-                if (simulate) { // if !true; we should go on.
-                    ItemStack output = ItemStack.EMPTY; // Set default stack (What should go out to our hand)
-                    Minecraft.getInstance().player.inventory.setItemStack(this.stacks.get(slot).copy());
-                    credit -= this.stacks.get(slot).getCount();
-                    System.out.println(credit);
-                    outputHandler.insertItem(0, ItemStack.EMPTY, true); // Force update (After we have new stack for our hand)
-
-                    return ItemStack.EMPTY; // Set hand value
-                }
-                return ItemStack.EMPTY;
-            }
-
-            @Override
-            protected void onContentsChanged(int slot) {
-                super.onContentsChanged(slot);
-                tileEntity.getTileData().putInt("oeCredit", credit);
-            }
-        }
-
-        for (int y = 0; y < 2; y++) { // for each vertical item slot
-            for (int x = 0; x < 3; x++) { // for each horizontal item slot
-                addSlot( new SlotItemHandler(outputHandler, index, 16+(18 * x), 64+(18 * y) ) );
-                index ++;
-            }
-        };*/
 
         this.inputHandler = new ItemStackHandler(6) {
             @Nonnull
@@ -250,7 +172,7 @@ public class ShopBlockContainer extends Container {
     //*
     @Nonnull
     @Override
-    public ItemStack slotClick(int slotId, int dragType, ClickType clickTypeIn, PlayerEntity player) {
+    public ItemStack slotClick(int slotId, int dragType, @Nonnull ClickType clickTypeIn, PlayerEntity player) {
         int numberOfShopSlots = 30;
         int total = numberOfShopSlots;
         PlayerInventory playerinventory = player.inventory;
@@ -331,7 +253,7 @@ public class ShopBlockContainer extends Container {
         return null;
     }
 
-    private ArrayList<ShopItem> generateList() {
+    private void generateList() {
         ArrayList<String> keys = new ArrayList<>();
         _shopItems.clear();
         Random generator = new Random();
@@ -352,11 +274,10 @@ public class ShopBlockContainer extends Container {
         } else {
             _shopItems.addAll(shopItems);
         }
-        return _shopItems;
     }
 
     @Override
-    public boolean canInteractWith(PlayerEntity playerIn) {
+    public boolean canInteractWith(@Nonnull PlayerEntity playerIn) {
         return isWithinUsableDistance(IWorldPosCallable.of(tileEntity.getWorld(), tileEntity.getPos()), playerEntity, BlockList.SHOPBLOCK);
     }
 
@@ -369,12 +290,11 @@ public class ShopBlockContainer extends Container {
         return index;
     }
 
-    private int addSlotBox(IItemHandler handler, int index, int x, int y, int horAmount, int dx, int verAmount, int dy) {
+    private void addSlotBox(IItemHandler handler, int index, int x, int y, int horAmount, int dx, int verAmount, int dy) {
         for (int i=0; i < verAmount; i++) {
             index = addSlotRange(handler, index, x, y, horAmount, dx);
             y += dy;
         }
-        return index;
     }
 
     private void layoutPlayerInventorySlots(int leftCol, int topRow) {
