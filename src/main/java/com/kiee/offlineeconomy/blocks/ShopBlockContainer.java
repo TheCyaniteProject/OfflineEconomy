@@ -78,7 +78,6 @@ public class ShopBlockContainer extends Container {
             credit = Parser.LoadPlayerData();
             //credit = playerEntity.getPersistentData().getFloat("oeCredits");
         }
-        //credit = playerEntity.getPersistentData().getFloat("oeCredit");
     }
 
     @Override
