@@ -27,6 +27,8 @@ public class Parser {
             e.printStackTrace();
         }
 
+        ShopBlockContainer.shopItems.clear();
+
         Write();
         Read();
     }
@@ -171,16 +173,68 @@ public class Parser {
         return output;
     }
 
-    public void add(String item) {
-
+    public static void set(String item_id, float cost, float value) {
+        boolean exists = false;
+        String data = "";
+        BufferedReader reader;
+        try {
+            reader = new BufferedReader(new FileReader(configDir.toFile()));
+            String line = reader.readLine();
+            while (line != null) {
+                line = line.replaceAll("\\s", "");
+                if (line.contains("shop_item="+item_id)) {
+                    line = "shop_item = "+ item_id +", "+ cost +", "+ value;
+                    exists = true;
+                }
+                data = data + line + "\n";
+                // read next line
+                line = reader.readLine();
+            }
+            reader.close();
+            if (!exists) {
+                data = data + ("shop_item = "+ item_id +", "+ cost +", "+ value) + "\n";
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            PrintWriter out = new PrintWriter(configDir.toFile());
+            out.print(data);
+            out.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    public void set(String item) {
-
-    }
-
-    public void remove(String item) {
-
+    public static void remove(String item_id) {
+        boolean exists = false;
+        String data = "";
+        BufferedReader reader;
+        try {
+            reader = new BufferedReader(new FileReader(configDir.toFile()));
+            String line = reader.readLine();
+            while (line != null) {
+                line = line.replaceAll("\\s", "");
+                if (line.contains("shop_item="+item_id)) {
+                    line = "";
+                    exists = true;
+                }
+                data = data + line + "\n";
+                // read next line
+                line = reader.readLine();
+            }
+            reader.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if (!exists) return;
+        try {
+            PrintWriter out = new PrintWriter(configDir.toFile());
+            out.print(data);
+            out.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 }

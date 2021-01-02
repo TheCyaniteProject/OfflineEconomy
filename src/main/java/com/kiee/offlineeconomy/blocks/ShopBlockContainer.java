@@ -243,7 +243,7 @@ public class ShopBlockContainer extends Container {
         return shopSlots.get(index);
     }
 
-    public ShopItem CheckItem(Item item) {
+    public static ShopItem CheckItem(Item item) {
         for (ShopItem shopItem : shopItems) {
             if (shopItem.item == item) {
                 return shopItem;
